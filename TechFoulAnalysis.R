@@ -33,10 +33,7 @@ nrow(free_throws) - (nrow(made) + nrow(missed))
 the_missing <- free_throws %>%
   filter(!grepl("made|Made|missed|miss", Description))
 # So these are the PFs with number of FTs awarded (1, 2, or 3)
-
-# Calculate the FT % for all FTs.
-FTperc <- nrow(made) / (nrow(made) + nrow(missed))
-# NOTE:  This will also still include FTs for technical fouls.
+# Don't really need those.
 
 # Find all technical fouls
 techs <- ncaam_1819 %>%
@@ -50,24 +47,31 @@ tf_ft <- tf_ft %>%
   arrange(row_id)
 
 # Keep only free throws within 6 (?) rows of a technical foul
-techs1 <- techs$row_id+1
-techs2 <- techs$row_id+2
-techs3 <- techs$row_id+3
-techs4 <- techs$row_id+4
-techs5 <- techs$row_id+5
-techs6 <- techs$row_id+6
-result <- sort(c(techs1, techs2, techs3, techs4, techs5, techs6))
+result <- techs %>%
+  select(row_id) %>% 
+  map( ~ c(.x + 1:6)) %>% 
+  flatten_dbl()
 
-tf_ft <- tf_ft %>%
+ft_after_tf <- tf_ft %>%
   filter(row_id %in% result)
 
 # Find free throws made
-made_tf <- tf_ft %>%
+made_tf <- ft_after_tf %>%
   filter(grepl("made|Made", Description))
 
 # Find free throws missed
-missed_tf <- tf_ft %>%
+missed_tf <- ft_after_tf %>%
   filter(grepl("missed|miss", Description))
 
-# Calculate the FT % for all FTs.
+# Calculate the FT % for FTs after TFs.
 tfFTperc <- nrow(made_tf) / (nrow(made_tf) + nrow(missed_tf))
+
+# Separate out FTs NOT after Tfs.
+non_techs <- tf_ft %>%
+  filter(!(row_id %in% result))
+
+# Check if all are accounted for
+nrow(techs)
+nrow(non_techs)
+nrow(techs)+nrow(non_techs)
+nrow(made)+nrow(missed)
