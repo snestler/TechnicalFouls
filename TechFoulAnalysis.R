@@ -1,6 +1,7 @@
 library(data.table)
 library(dplyr)
 library(tibble)
+library(purrr)
 
 # Read in Play-By-Play (PBP) file(s)
 ncaam_1819<- tibble(fread("NatStat-MBB2019-Play-by-Play-2021-01-17-h15.csv"))
@@ -47,10 +48,20 @@ tf_ft <- tf_ft %>%
   arrange(row_id)
 
 # Keep only free throws within 6 (?) rows of a technical foul
-result <- techs %>%
-  select(row_id) %>% 
-  map( ~ c(.x + 1:6)) %>% 
-  flatten_dbl()
+# What about a double technical foul?  Look for example.
+
+result1 <- techs$row_id +1
+result2 <- techs$row_id +2
+result3 <- techs$row_id +3
+result4 <- techs$row_id +4
+result5 <- techs$row_id +5
+result6 <- techs$row_id +6
+result <- sort(c(techs$row_id,result1, result2, result3,  result4,  result5,  result6))
+
+#result <- techs %>%
+#  select(row_id) %>% 
+#  map( ~ c(.x + 1:6)) %>% 
+#  flatten_dbl()
 
 ft_after_tf <- tf_ft %>%
   filter(row_id %in% result)
@@ -71,7 +82,10 @@ non_techs <- tf_ft %>%
   filter(!(row_id %in% result))
 
 # Check if all are accounted for
-nrow(techs)
+nrow(ft_after_tf)
 nrow(non_techs)
-nrow(techs)+nrow(non_techs)
+nrow(ft_after_tf)+nrow(non_techs)
 nrow(made)+nrow(missed)
+
+team_bench <- techs %>%
+  filter(grepl("team|Team|bench|Bench|admin|Admin", Description))
