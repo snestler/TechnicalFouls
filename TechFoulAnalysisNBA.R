@@ -1,24 +1,23 @@
-library(data.table)
 library(dplyr)
 library(tibble)
 library(purrr)
 library(stringr)
 
 # Read in Play-By-Play (PBP) file(s)
-ncaam_1819<- tibble(fread("NatStat-MBB2019-Play-by-Play-2021-07-09-h07.csv"))
-ncaaw_1819<- tibble(fread("NatStat-WBB2019-Play-by-Play-2021-07-09-h07.csv"))
+nba_1819<- tibble(fread("NatStat-NBA2019-Play-by-Play-2021-07-09-h07.csv"))
+wnba_19<- tibble(fread("NatStat-WNBA2019-Play-by-Play-2021-07-09-h07.csv"))
 
 # Add row_id
-ncaam_1819 <- rowid_to_column(ncaam_1819, "row_id")
-ncaaw_1819 <- rowid_to_column(ncaaw_1819, "row_id")
+nba_1819 <- rowid_to_column(nba_1819, "row_id")
+wnba_19 <- rowid_to_column(wnba_19, "row_id")
 
 # Remove unnecessary columns
 keeps <- c("row_id", "TeamID", "OppID", "Description", "ScoringPlay", "Points")
-ncaam_1819 <- ncaam_1819[keeps]
-ncaaw_1819 <- ncaaw_1819[keeps]
+nba_1819 <- nba_1819[keeps]
+wnba_19 <- wnba_19[keeps]
 
 # Select league and year of interest
-current_data <- ncaam_1819
+current_data <- wnba_19
 
 # Find all free throws
 free_throws <- current_data %>%
@@ -26,30 +25,29 @@ free_throws <- current_data %>%
 
 # Determine the shooter
 free_throws <- free_throws %>%
-  mutate(Shooter = sapply(str_split(Description, " made "), function(x) x[1])) %>%
-  mutate(Shooter = sapply(str_split(Shooter, " Made "), function(x) x[1])) %>%
-  mutate(Shooter = sapply(str_split(Shooter, " missed "), function(x) x[1])) %>%
-  mutate(Shooter = sapply(str_split(Shooter, " Missed "), function(x) x[1]))
+  mutate(Shooter = sapply(str_split(Description, " makes "), function(x) x[1])) %>%
+  mutate(Shooter = sapply(str_split(Shooter, " Makes "), function(x) x[1])) %>%
+  mutate(Shooter = sapply(str_split(Shooter, " misses "), function(x) x[1])) %>%
+  mutate(Shooter = sapply(str_split(Shooter, " Misses "), function(x) x[1]))
 
 # Get a list of all FT shooters
 allShooters <- unique(free_throws$Shooter)
 
 # Find free throws made
 made <- free_throws %>%
-  filter(grepl("made|Made", Description))
+  filter(grepl("makes|Makes", Description))
 
 # Find free throws missed
 missed <- free_throws %>%
-  filter(grepl("missed|miss", Description))
+  filter(grepl("misses|Misses", Description))
 
 # Check if all are accounted for
 nrow(made)+nrow(missed) == nrow(free_throws)
 nrow(made)+nrow(missed)
 nrow(free_throws)
 nrow(free_throws) - (nrow(made) + nrow(missed))
-# Missing 4951 FTs somewhere
 the_missing <- free_throws %>%
-  filter(!grepl("made|Made|missed|miss", Description))
+  filter(!grepl("makes|Makes|misses|Misses", Description))
 # So these are the PFs with number of FTs awarded (1, 2, or 3)
 # Don't really need those, so remove them.
 
@@ -89,15 +87,15 @@ result <- sort(c(techs$row_id,result1, result2, result3,  result4,  result5))
 
 ft_after_tf <- tf_ft %>%
   filter(row_id %in% result) %>%
-  filter(grepl("made|Made|missed|miss", Description))
+  filter(grepl("makes|Makes|misses|Misses", Description))
 
 # Find free throws made
 made_tf <- ft_after_tf %>%
-  filter(grepl("made|Made", Description))
+  filter(grepl("makes|Makes", Description))
 
 # Find free throws missed
 missed_tf <- ft_after_tf %>%
-  filter(grepl("missed|miss", Description))
+  filter(grepl("misses|Misses", Description))
 
 # Calculate the FT % for FTs after TFs.
 tfFTperc <- nrow(made_tf) / (nrow(ft_after_tf))
@@ -106,7 +104,7 @@ tfFTperc <- nrow(made_tf) / (nrow(ft_after_tf))
 non_techs <- keepers %>%
   filter(!(row_id %in% result))
 non_tech_made <- non_techs %>%
-  filter(grepl("made|Made", Description))
+  filter(grepl("makes|Makes", Description))
 
 # Calculate the FT % for FTs NOT after TFs.
 FTperc <- nrow(non_tech_made) / nrow(non_techs)
@@ -130,6 +128,11 @@ nrow(ft_after_tf)+nrow(non_techs)
 nrow(made)+nrow(missed)
 (nrow(ft_after_tf)+nrow(non_techs))-(nrow(made)+nrow(missed))
 #missing 29.  (But that's the number of technical fouls!)
+
+FTperc
+tfFTperc
+FTperc_TF_shoot
+
 
 # team_bench <- techs %>%
 #   filter(grepl("team|Team|bench|Bench|admin|Admin", Description))
